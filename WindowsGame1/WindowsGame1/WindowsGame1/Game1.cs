@@ -19,19 +19,41 @@ namespace WindowsGame1
         GraphicsDeviceManager graphics;
         SpriteBatch spriteBatch;
 
-        private Model model;
-        private Matrix world = Matrix.CreateTranslation(new Vector3(0, 0, 0));
-        private Matrix view = Matrix.CreateLookAt(new Vector3(0, -4, 2), new Vector3(0, 0, 0), Vector3.UnitY);
-        private Matrix projection = Matrix.CreatePerspectiveFieldOfView(MathHelper.ToRadians(45), 800f / 480f, 0.1f, 100f);
+       
         private Vector3 position;
-        //private float angle;
+        private float angle;
+        private KeyboardState oldState;
+
+        Camera camera = new Camera();
+
+        Matrix shipWorld;
+        Model shipModel;
+
+        Matrix astroWorld;
+        Model astroModel;
+
+        Matrix astro2World;
+        Model astro2Model;
+
+        Matrix astro3World;
+        Model astro3Model;
+
+        private Vector3 astroFly;
+        private Vector3 astroFly2;
+        private Vector3 astroFly3;
+              
         public Game1()
         {
             graphics = new GraphicsDeviceManager(this);
             Content.RootDirectory = "Content";
-            graphics.PreferredBackBufferWidth = 1280;  // set this value to the desired width of your window
-            graphics.PreferredBackBufferHeight = 720;   // set this value to the desired height of your window
+            graphics.PreferredBackBufferWidth = 1920;  // set this value to the desired width of your window
+            graphics.PreferredBackBufferHeight = 1080;   // set this value to the desired height of your window
             graphics.ApplyChanges();
+            graphics.IsFullScreen = true;
+            graphics.ApplyChanges();
+
+   
+
         }
 
         /// <summary>
@@ -43,6 +65,13 @@ namespace WindowsGame1
         protected override void Initialize()
         {
             // TODO: Add your initialization logic here
+            shipWorld = Matrix.Identity;
+            astroWorld = Matrix.Identity;
+            
+            astro2World = Matrix.Identity;
+            
+            astro3World = Matrix.Identity;
+            
 
             base.Initialize();
         }
@@ -53,13 +82,23 @@ namespace WindowsGame1
         /// </summary>
         protected override void LoadContent()
         {
+            
+
             // Create a new SpriteBatch, which can be used to draw textures.
             spriteBatch = new SpriteBatch(GraphicsDevice);
-
+                       
             // TODO: use this.Content to load your game content here
-            model = Content.Load<Model>(@"Ship\Ship");
+
+            shipModel = Content.Load<Model>(@"Ship\Ship");
+            astroModel = Content.Load<Model>("LargeAsteroid");
+            astro2Model = Content.Load<Model>("LargeAsteroid");
+            astro3Model = Content.Load<Model>("LargeAsteroid");
+
+            astroFly = new Vector3(0, 10, 0);
+            astroFly2 = new Vector3(-1, 15, -2);
+            astroFly3 = new Vector3(2, 20, -1);
             position = new Vector3(0, 0, 0);
-            //angle = 0;
+            angle = 0;
         }
 
         /// <summary>
@@ -78,49 +117,76 @@ namespace WindowsGame1
         /// <param name="gameTime">Provides a snapshot of timing values.</param>
         protected override void Update(GameTime gameTime)
         {
+            camera.Update();
+
             // Allows the game to exit
             if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed)
                 this.Exit();
 
+
             // TODO: Add your update logic here
             KeyboardState state = Keyboard.GetState();
-
-            if (state.IsKeyDown(Keys.W))
-            {
-                position += new Vector3(0, 0.1f, 0);
-            }
-            if (state.IsKeyDown(Keys.S))
-            {
-                position += new Vector3(0, -0.1f, 0);
-            }
+            KeyboardState newState = Keyboard.GetState();  // get the newest state
+                  
+            if (Keyboard.GetState().IsKeyDown(Keys.Escape))
+                this.Exit();
+            // quit game
+            
             if (state.IsKeyDown(Keys.A))
             {
                 position += new Vector3(-0.1f, 0, 0);
+                shipWorld = Matrix.CreateTranslation(position);
             }
             if (state.IsKeyDown(Keys.D))
             {
                 position += new Vector3(0.1f, 0, 0);
+                shipWorld = Matrix.CreateTranslation(position);
             }
             if (state.IsKeyDown(Keys.Space))
             {
                 position += new Vector3(0, 0, 0.1f);
+                shipWorld = Matrix.CreateTranslation(position);
             }
             if (state.IsKeyDown(Keys.LeftShift))
             {
                 position += new Vector3(0, 0, -0.1f);
-            }    
-            //if (state.IsKeyDown(Keys.Q))
-            //{
-              //  position += new Vector3(-0.1f, 0, 0);
-                //angle += -0.1f;
-            //}
-            //if (state.IsKeyDown(Keys.E))
-            //{
-              //  position += new Vector3(0.1f, 0, 0);
-                //angle += 0.1f;
-            //}
-            //world = Matrix.CreateRotationY(angle) * Matrix.CreateTranslation(position);
-            world = Matrix.CreateTranslation(position);
+                shipWorld = Matrix.CreateTranslation(position);
+            }
+            if (oldState.IsKeyUp(Keys.Q) && newState.IsKeyDown(Keys.Q))
+            {
+                position += new Vector3(-1f, 0, 0);
+                angle += -1f;
+                shipWorld = Matrix.CreateRotationY(angle) * Matrix.CreateTranslation(position);                
+            }
+            oldState = newState;  // set the new state as the old state for next time
+            if (oldState.IsKeyUp(Keys.E) && newState.IsKeyDown(Keys.E))
+            {
+                position += new Vector3(1f, 0, 0);
+                angle += 1f;
+                shipWorld = Matrix.CreateRotationY(angle) * Matrix.CreateTranslation(position);                
+            }
+            oldState = newState;  // set the new state as the old state for next time
+
+            astroFly += new Vector3(0, -0.05f, 0);
+            astroFly2 += new Vector3(0, -0.05f, 0);
+            astroFly3 += new Vector3(0, -0.05f, 0);
+            astroWorld = Matrix.CreateTranslation(astroFly);
+            astro2World = Matrix.CreateTranslation(astroFly2);
+            astro3World = Matrix.CreateTranslation(astroFly3);
+
+            if (IsCollision(shipModel, shipWorld, astroModel, astroWorld))
+            {
+                this.Exit();
+            }
+            if (IsCollision(shipModel, shipWorld, astro2Model, astro2World))
+            {
+                this.Exit();
+            }
+            if (IsCollision(shipModel, shipWorld, astro3Model, astro3World))
+            {
+                this.Exit();
+            }
+
             base.Update(gameTime);
         }
 
@@ -134,25 +200,51 @@ namespace WindowsGame1
 
             // TODO: Add your drawing code here
 
-            DrawModel(model, world, view, projection);
+            DrawModel(shipModel, shipWorld);
+            DrawModel(astroModel, astroWorld);
+            DrawModel(astro2Model, astro2World);
+            DrawModel(astro3Model, astro3World);
 
             base.Draw(gameTime);
         }
 
-        private void DrawModel(Model model, Matrix world, Matrix view, Matrix projection)
+        private void DrawModel(Model model, Matrix worldMatrix)
         {
+            Matrix[] modelTransforms = new Matrix[model.Bones.Count];
+            model.CopyAbsoluteBoneTransformsTo(modelTransforms);
+
             foreach (ModelMesh mesh in model.Meshes)
             {
                 foreach (BasicEffect effect in mesh.Effects)
                 {
-                    effect.World = world;
-                    effect.View = view;
-                    effect.Projection = projection;
                     effect.EnableDefaultLighting();
+                    effect.World = modelTransforms[mesh.ParentBone.Index] * worldMatrix;
+                    effect.View = camera.viewMatrix;
+                    effect.Projection = camera.projectionMatrix;
                 }
-
                 mesh.Draw();
             }
         }
+
+        private bool IsCollision(Model model1, Matrix world1, Model model2, Matrix world2)
+        {
+            for (int meshIndex1 = 0; meshIndex1 < model1.Meshes.Count; meshIndex1++)
+            {
+                BoundingSphere sphere1 = model1.Meshes[meshIndex1].BoundingSphere;
+                sphere1 = sphere1.Transform(world1);
+
+                for (int meshIndex2 = 0; meshIndex2 < model2.Meshes.Count; meshIndex2++)
+                {
+                    BoundingSphere sphere2 = model2.Meshes[meshIndex2].BoundingSphere;
+                    sphere2 = sphere2.Transform(world2);
+
+                    if (sphere1.Intersects(sphere2))
+                        return true;
+                }
+            }
+            return false;
+        }
     }
+
+
 }
